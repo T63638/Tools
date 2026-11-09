@@ -1,0 +1,152 @@
+import React, { useState } from 'react';
+import {
+  View, Text, TextInput, Pressable,
+  FlatList, KeyboardAvoidingView, Platform
+} from 'react-native';
+
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+};
+
+const API_URL = 'https://ТВОЙ-СЕРВЕР/chat';
+
+export default function Home() {
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      text: 'HARD BOT на связи. Никаких скучных границ. Только возможности.'
+    }
+  ]);
+
+  async function sendMessage() {
+    if (!input.trim() || loading) return;
+
+    const text = input.trim();
+
+    setMessages(old => [
+      ...old,
+      { id: Date.now().toString(), role: 'user', text }
+    ]);
+
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+
+      if (!response.ok) throw new Error('Ошибка сервера');
+
+      const data = await response.json();
+
+      setMessages(old => [
+        ...old,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          text: data.reply
+        }
+      ]);
+    } catch {
+      setMessages(old => [
+        ...old,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          text: 'ИИ пока не подключён. Нужно настроить сервер.'
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#090A0D' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Text style={{
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '900',
+        padding: 22,
+        marginTop: 35
+      }}>
+        HARD <Text style={{ color: '#AEB4C0' }}>BOT</Text>
+      </Text>
+
+      <FlatList
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 15 }}
+        data={messages}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={{
+            backgroundColor: item.role === 'user' ? '#303641' : '#171A21',
+            borderRadius: 16,
+            padding: 15,
+            marginVertical: 7,
+            alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start',
+            maxWidth: '90%'
+          }}>
+            <Text style={{ color: '#AEB4C0', fontSize: 11 }}>
+              {item.role === 'user' ? 'ТЫ' : 'HARD BOT'}
+            </Text>
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              marginTop: 7
+            }}>
+              {item.text}
+            </Text>
+          </View>
+        )}
+      />
+
+      <View style={{
+        flexDirection: 'row',
+        padding: 12,
+        gap: 8,
+        borderTopWidth: 1,
+        borderColor: '#303641'
+      }}>
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder="Напиши HARD BOT..."
+          placeholderTextColor="#777777"
+          style={{
+            flex: 1,
+            color: '#FFFFFF',
+            backgroundColor: '#171A21',
+            borderRadius: 14,
+            padding: 14
+          }}
+        />
+
+        <Pressable
+          onPress={sendMessage}
+          style={{
+            backgroundColor: '#D8DCE4',
+            padding: 15,
+            borderRadius: 14
+          }}
+        >
+          <Text style={{ color: '#000000', fontWeight: '900' }}>
+            ➤
+          </Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+                }
